@@ -403,7 +403,7 @@ ggplot(reg_dfw,
 options(contrasts = c("contr.sum", "contr.poly"))
 
 # Model fitting
-mod3_quad 
+mod3_quad <- lmer(data = reg_dfw, formula = yield_mgha ~ sr_ksha + I(sr_ksha^2) + (1|rep))
 
 # Summary
 summary(mod3_quad)
@@ -557,7 +557,16 @@ After that, we can choose the model that best fit our data and use it to extract
 options(contrasts = c("contr.sum", "contr.poly"))
 
 # Model fitting
-mod4_linp 
+mod4_linp <- nlme(yield_mgha ~ SSlinp(sr_ksha, 
+                                      a, b, xs), 
+                  data = reg_dfw,
+                  random = list(rep = pdDiag(a+b+xs ~ 1)),
+                  fixed = list(a ~ 1,
+                               b ~ 1, 
+                               xs ~ 1),
+                  start = c(a = 0,
+                            b = 0.3,
+                            xs = 100))
 
 # Summary
 summary(mod4_linp)
@@ -601,12 +610,14 @@ Looking good.
 On this plot, looking for normality.
 
 ```{r mod4 QQ plot for Rep random effect}
-mod4_linp_randeff 
+mod4_linp_randeff <- ranef(mod4_linp) %>% 
+  as.data.frame()
 
 ggplot(mod4_linp_randeff, 
        aes(sample = estimate))+
   stat_qq()+
-  stat_qq_line() 
+  stat_qq_line() +
+  facet_wrap(~term)
 
 ```
 b and xs random estimates are so small that seem to be all zero.  
@@ -650,10 +661,10 @@ nd <- nd %>%
                                    level = 0))  
 
 # Non-linear prediction function  
-predict.fun.nl <- function(x) predict(x,
+predict.fun.nl <- function(x) {predict(x,
                            newdata = nd,
                            re.form = NA,
-                           level = 0)
+                           level = 0)}
 
 
 # Bootstrapping
@@ -693,7 +704,23 @@ ggplot(reg_dfw,
 ## a) Visual comparison
 ```{r comparison plot}
 ggplot(reg_dfw, aes(x = sr_ksha, y = yield_mgha))+
-  geom_point(size = 4, alpha = .6)
+  geom_point(size = 4, alpha = .6)+
+  geom_point(data = nd,
+             aes(y = mod1_yield_mgha),
+             color = "forestgreen",
+             size = 1.5)+
+  geom_point(data = nd,
+             aes(y = mod2_yield_mgha),
+             color = "red",
+             size = 1.5)+
+  geom_point(data = nd,
+             aes(y = mod3_yield_mgha),
+             color = "yellow",
+             size = 1.5)+
+  geom_point(data = nd,
+             aes(y = mod4_yield_mgha),
+             color = "blue",
+             size = 1.5)
 
 
 ```
@@ -736,4 +763,13 @@ ggplot(reg_dfw, aes(x = sr_ksha, y = yield_mgha))+
 -   Always check residuals! p-values alone do not tell you whether model is adequate for your data!
 
 
+```{r}
+# usethis::create_github_token()
+# 
+# gitcreds::gitcreds_set()
+# 
+# gh::gh_whoami()
+# 
+# usethis::edit_r_environ()
+```
 
